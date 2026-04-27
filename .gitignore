@@ -1,0 +1,15 @@
+# Ignore datasets and large files
+data/
+dataset/
+*.h5
+*.pt
+*.pth
+*.pkl
+*.jpg
+*.png
+
+# Ignore temp files
+__pycache__/
+*.pyc
+tempCodeRunnerFile.py
+.venv/
