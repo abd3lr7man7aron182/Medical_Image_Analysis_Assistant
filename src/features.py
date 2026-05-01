@@ -1,21 +1,3 @@
-# import numpy as np
-# import cv2
-
-# def extract_features(gray, mask):
-#     roi = cv2.bitwise_and(gray, gray, mask=mask)
-
-#     pixels = roi[mask == 255]
-
-#     if len(pixels) == 0:
-#         return [0, 0, 0]
-
-#     mean = np.mean(pixels)
-#     std = np.std(pixels)
-#     area = len(pixels)
-
-#     return [mean, std, area]
-
-
 import numpy as np
 import cv2
 from scipy.stats import skew, kurtosis
@@ -61,3 +43,38 @@ def extract_features(gray, mask):
     ])
 
     return features
+
+
+# =========================
+# SIFT FEATURES 🔥
+# =========================
+
+
+def extract_sift_features(gray, mask=None):
+
+    sift = cv2.SIFT_create()
+
+    # نشتغل على ROI لو فيه mask
+    if mask is not None:
+        roi = cv2.bitwise_and(gray, gray, mask=mask)
+    else:
+        roi = gray
+
+    keypoints, descriptors = sift.detectAndCompute(roi, None)
+
+    # لو مفيش features
+    if descriptors is None or len(keypoints) == 0:
+        return np.zeros(4)
+
+    # ===== نحول ل vector ثابت =====
+    num_kp = len(keypoints)
+    mean_des = np.mean(descriptors)
+    std_des = np.std(descriptors)
+    max_des = np.max(descriptors)
+
+    return np.array([
+        num_kp,
+        mean_des,
+        std_des,
+        max_des
+    ])

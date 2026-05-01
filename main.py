@@ -1,191 +1,16 @@
 import os
 import cv2
-
-# from src.preprocessing import preprocess_image
-# from src.harris import harris_pipeline
-# from src.pyramid import run_pyramid_pipeline, display_pyramid
-# from src.sift import detect_sift_features, draw_keypoints, match_features, draw_matches
-
-
-# # =========================
-# # Paths
-# # =========================
-# base_dir = os.path.dirname(__file__)
-
-# path1 = os.path.join(
-#     base_dir,
-#     "data",
-#     "chest_xray",
-#     "train",
-#     "NORMAL",
-#     "IM-0115-0001.jpeg"
-# )
-
-# path2 = os.path.join(
-#     base_dir,
-#     "data",
-#     "chest_xray",
-#     "train",
-#     "PNEUMONIA",
-#     "person1_bacteria_1.jpeg"
-# )
-
-
-# # =========================
-# # Preprocessing Image 1
-# # =========================
-# res1 = preprocess_image(path1)
-
-# if res1 is None:
-#     print("Failed to load NORMAL image")
-#     exit()
-
-# original = res1["original"]
-# gray = res1["grayscale"]
-# gaussian = res1["gaussian"]
-# median = res1["median"]
-
-
-# # =========================
-# # Harris
-# # =========================
-# harris_result = harris_pipeline(original, gray, threshold=0.02)
-# print("Number of corners:", harris_result["num_corners"])
-
-# cv2.imshow("Original", original)
-# cv2.imshow("Grayscale", gray)
-# cv2.imshow("Gaussian", gaussian)
-# cv2.imshow("Median", median)
-# cv2.imshow("Harris Corners", harris_result["image"])
-
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
-
-# # =========================
-# # Pyramid
-# # =========================
-# pyramid_result = run_pyramid_pipeline(original, levels=3)
-
-# print("Pyramid done")
-
-# display_pyramid(pyramid_result["gaussian"], "Gaussian")
-# display_pyramid(pyramid_result["laplacian"], "Laplacian")
-
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
-
-# # =========================
-# # Preprocessing Image 2 (SIFT)
-# # =========================
-# res2 = preprocess_image(path2)
-
-# if res2 is None:
-#     print("Failed to load PNEUMONIA image")
-#     exit()
-
-# img1 = res1["original"]
-# gray1 = res1["grayscale"]
-
-# img2 = res2["original"]
-# gray2 = res2["grayscale"]
-
-
-# # =========================
-# # SIFT
-# # =========================
-# kp1, des1 = detect_sift_features(gray1)
-# kp2, des2 = detect_sift_features(gray2)
-
-# print("Keypoints Image1:", len(kp1))
-# print("Keypoints Image2:", len(kp2))
-
-# img_kp1 = draw_keypoints(img1, kp1)
-# img_kp2 = draw_keypoints(img2, kp2)
-
-
-# # =========================
-# # Matching
-# # =========================
-# matches = match_features(des1, des2)
-# print("Good matches:", len(matches))
-
-# match_img = draw_matches(img1, kp1, img2, kp2, matches)
-
-
-# # =========================
-# # Display SIFT
-# # =========================
-# cv2.imshow("SIFT Keypoints 1", img_kp1)
-# cv2.imshow("SIFT Keypoints 2", img_kp2)
-# cv2.imshow("Matches", match_img)
-
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
-
-
-# from src.segmentation import segmentation_pipeline
-
-# # # =========================
-# # # Segmentation
-# # # =========================
-# # seg_result = segmentation_pipeline(original, gray)
-
-# # print("Segmentation done")
-
-# # cv2.imshow("Threshold", seg_result["threshold"])
-# # cv2.imshow("ROI (Largest Region)", seg_result["roi"])
-# # cv2.imshow("KMeans Segmentation", seg_result["kmeans"])
-
-# # cv2.waitKey(0)
-# # cv2.destroyAllWindows()
-
-# import cv2
-
-
-
-# def main():
-#     sample_path = path2
-
-#     img = cv2.imread(sample_path)
-
-#     if img is None:
-#         print(f"File not found: {sample_path}")
-#         return
-
-#     # Resize
-#     img_resized = cv2.resize(img, (512, 512))
-
-#     # Convert to gray
-#     gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-
-#     # Run pipeline
-#     results = segmentation_pipeline(img_resized, gray)
-
-#     # Display results
-#     cv2.imshow("Original", img_resized)
-#     cv2.imshow("Threshold", results["thresholded"])
-#     cv2.imshow("Mask", results["mask"])
-#     cv2.imshow("Overlay", results["visualization"])
-
-#     print("Segmentation complete.")
-
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
-# if __name__ == "__main__":
-#     main()
-
+import numpy as np
 from src.preprocessing import preprocess_image
-from src.segmentation import segmentation_pipeline
-from src.features import extract_features
+from src.segmentation import segmentation_pipeline, kmeans_mask
+from src.features import extract_features, extract_sift_features
+from src.classification import train_model, predict_image, train_naive_bayes, train_adaboost
 
-import os
 
-def build_dataset(base_dir):
+# =========================
+# Build Dataset (Flexible 🔥)
+# =========================
+def build_dataset(base_dir, method="threshold", feature_type="old"):
 
     X = []
     y = []
@@ -202,33 +27,113 @@ def build_dataset(base_dir):
             if res is None:
                 continue
 
-            seg = segmentation_pipeline(res["original"], res["grayscale"])
+            # =========================
+            # Segmentation
+            # =========================
+            if method == "threshold":
+                seg = segmentation_pipeline(res["original"], res["grayscale"])
+                mask = seg["mask"]
 
-            features = extract_features(res["grayscale"], seg["mask"])
+            elif method == "kmeans":
+                mask = kmeans_mask(res["grayscale"])
+
+            else:
+                raise ValueError("Unknown segmentation method")
+
+            # =========================
+            # Feature Extraction
+            # =========================
+            if feature_type == "old":
+                features = extract_features(res["grayscale"], mask)
+
+            elif feature_type == "sift":
+                 features = extract_sift_features(res["grayscale"], mask)
+
+            elif feature_type == "combined":
+                  f1 = extract_features(res["grayscale"], mask)
+                  f2 = extract_sift_features(res["grayscale"], mask)
+
+                  features = np.concatenate([f1, f2])
+           
+            else:
+                raise ValueError("Unknown feature type")
 
             X.append(features)
             y.append(label)
 
     return X, y
 
-from src.classification import train_model
 
+# =========================
+# MAIN
+# =========================
 base_dir = "data/chest_xray/train"
 
-print("Building dataset...")
-X, y = build_dataset(base_dir)
 
+# 🔥 1. Threshold Segmentation
+print("\n===== THRESHOLD SEGMENTATION =====")
+X, y = build_dataset(base_dir, method="threshold", feature_type="old")
 print("Dataset size:", len(X))
 
-print("Training model...")
-model ,scaler= train_model(X, y)
-
-print("Done...start the prediction")
+print("Training Threshold Model...")
+model, scaler = train_model(X, y)
 
 
+# 🔥 2. KMeans Segmentation
+print("\n===== KMEANS SEGMENTATION =====")
+X_k, y_k = build_dataset(base_dir, method="kmeans", feature_type="old")
+print("Dataset size:", len(X_k))
 
-from src.classification import predict_image
+print("Training KMeans Model...")
+model_k, scaler_k = train_model(X_k, y_k)
 
+
+# =========================
+# FEATURE COMPARISON 🔥
+# =========================
+
+# 🟢 Old Features
+print("\n===== OLD FEATURES (Threshold) =====")
+X_old, y_old = build_dataset(base_dir, method="threshold", feature_type="old")
+model_old, scaler_old = train_model(X_old, y_old)
+
+# 🔵 SIFT Features
+print("\n===== SIFT FEATURES (Threshold) =====")
+X_sift, y_sift = build_dataset(base_dir, method="threshold", feature_type="sift")
+model_sift, scaler_sift = train_model(X_sift, y_sift)
+
+# 🔵 COMBINED Features
+print("\n===== COMBINED FEATURES (Threshold) =====")
+
+X_comb, y_comb = build_dataset(base_dir, method="threshold", feature_type="combined")
+
+model_comb, scaler_comb = train_model(X_comb, y_comb)
+
+
+
+# =========================
+# NAIVE BAYES 🔥
+# =========================
+
+print("\n===== NAIVE BAYES (Threshold + Old Features) =====")
+
+X_nb, y_nb = build_dataset(base_dir, method="threshold", feature_type="old")
+
+model_nb, scaler_nb = train_naive_bayes(X_nb, y_nb)
+
+
+# =========================
+# ADABOOST 🔥
+# =========================
+
+print("\n===== ADABOOST (Threshold + Old Features) =====")
+
+X_ab, y_ab = build_dataset(base_dir, method="threshold", feature_type="old")
+
+model_ab, scaler_ab = train_adaboost(X_ab, y_ab)
+# =========================
+# Visualization
+# =========================
 def show_pipeline(path):
 
     res = preprocess_image(path)
@@ -238,37 +143,46 @@ def show_pipeline(path):
 
     original = res["original"]
     gray = res["grayscale"]
-    gaussian = res["gaussian"]
-    median = res["median"]
 
+    # Threshold
     seg = segmentation_pipeline(original, gray)
 
-    # عرض
-    cv2.imshow("Original", original)
-    cv2.imshow("Grayscale", gray)
-    cv2.imshow("Gaussian", gaussian)
-    cv2.imshow("Median", median)
+    # KMeans
+    k_mask = kmeans_mask(gray)
 
-    cv2.imshow("Threshold", seg["thresholded"])
-    cv2.imshow("Mask", seg["mask"])
-    cv2.imshow("Overlay", seg["visualization"])
+    cv2.imshow("Original", original)
+    cv2.imshow("Gaussian", res["gaussian"])
+    cv2.imshow("Median", res["median"])
+
+    cv2.imshow("Threshold Mask", seg["mask"])
+    cv2.imshow("Threshold Overlay", seg["visualization"])
+
+    cv2.imshow("KMeans Mask", k_mask)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-test_img = r"F:\Third-Year-Second-Term\CV\Project\Medical_Image_ Analysis _Assistant\Data\chest_xray\val\PNEUMONIA\person1946_bacteria_4875.jpeg"
+
+
+# =========================
+# Test Image
+# =========================
+test_img = r"F:\Third-Year-Second-Term\CV\Project\Medical_Image_ Analysis _Assistant\Data\chest_xray\val\NORMAL\NORMAL2-IM-1442-0001.jpeg "
 
 show_pipeline(test_img)
 
+
+# =========================
+# Final Prediction (BEST MODEL)
+# =========================
+print("\n===== FINAL PREDICTION (Threshold + Old Features) =====")
+
 result = predict_image(
-    model,
-    scaler, 
+    model,        # أفضل موديل
+    scaler,
     test_img,
     preprocess_image,
     segmentation_pipeline,
-    extract_features
+    extract_features   # أفضل features
 )
 
 print("Final Prediction:", result)
-
-
-
