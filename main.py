@@ -8,7 +8,7 @@ from src.classification import train_model, predict_image, train_naive_bayes, tr
 
 
 # =========================
-# Build Dataset (Flexible 🔥)
+# Build Dataset
 # =========================
 def build_dataset(base_dir, method="threshold", feature_type="old"):
 
@@ -70,7 +70,7 @@ def build_dataset(base_dir, method="threshold", feature_type="old"):
 base_dir = "data/chest_xray/train"
 
 
-# 🔥 1. Threshold Segmentation
+#  Threshold Segmentation
 print("\n===== THRESHOLD SEGMENTATION =====")
 X, y = build_dataset(base_dir, method="threshold", feature_type="old")
 print("Dataset size:", len(X))
@@ -79,7 +79,7 @@ print("Training Threshold Model...")
 model, scaler = train_model(X, y)
 
 
-# 🔥 2. KMeans Segmentation
+#  KMeans Segmentation
 print("\n===== KMEANS SEGMENTATION =====")
 X_k, y_k = build_dataset(base_dir, method="kmeans", feature_type="old")
 print("Dataset size:", len(X_k))
@@ -89,20 +89,20 @@ model_k, scaler_k = train_model(X_k, y_k)
 
 
 # =========================
-# FEATURE COMPARISON 🔥
+# FEATURE COMPARISON 
 # =========================
 
-# 🟢 Old Features
+#  Old Features
 print("\n===== OLD FEATURES (Threshold) =====")
 X_old, y_old = build_dataset(base_dir, method="threshold", feature_type="old")
 model_old, scaler_old = train_model(X_old, y_old)
 
-# 🔵 SIFT Features
+#  SIFT Features
 print("\n===== SIFT FEATURES (Threshold) =====")
 X_sift, y_sift = build_dataset(base_dir, method="threshold", feature_type="sift")
 model_sift, scaler_sift = train_model(X_sift, y_sift)
 
-# 🔵 COMBINED Features
+#  COMBINED Features
 print("\n===== COMBINED FEATURES (Threshold) =====")
 
 X_comb, y_comb = build_dataset(base_dir, method="threshold", feature_type="combined")
@@ -112,7 +112,7 @@ model_comb, scaler_comb = train_model(X_comb, y_comb)
 
 
 # =========================
-# NAIVE BAYES 🔥
+# NAIVE BAYES 
 # =========================
 
 print("\n===== NAIVE BAYES (Threshold + Old Features) =====")
@@ -123,7 +123,7 @@ model_nb, scaler_nb = train_naive_bayes(X_nb, y_nb)
 
 
 # =========================
-# ADABOOST 🔥
+# ADABOOST 
 # =========================
 
 print("\n===== ADABOOST (Threshold + Old Features) =====")
@@ -177,12 +177,12 @@ show_pipeline(test_img)
 print("\n===== FINAL PREDICTION (Threshold + Old Features) =====")
 
 result = predict_image(
-    model,        # أفضل موديل
+    model,       
     scaler,
     test_img,
     preprocess_image,
     segmentation_pipeline,
-    extract_features   # أفضل features
+    extract_features   
 )
 
 print("Final Prediction:", result)

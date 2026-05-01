@@ -30,7 +30,7 @@ def extract_features(gray, mask):
     edge_pixels = edges[mask == 255]
     edge_density = np.sum(edge_pixels > 0) / len(pixels)
 
-    # ===== FINAL VECTOR 🔥🔥
+    # ===== FINAL VECTOR 
     features = np.array([
         mean,
         std,
@@ -46,7 +46,7 @@ def extract_features(gray, mask):
 
 
 # =========================
-# SIFT FEATURES 🔥
+# SIFT FEATURES 
 # =========================
 
 
@@ -54,7 +54,6 @@ def extract_sift_features(gray, mask=None):
 
     sift = cv2.SIFT_create()
 
-    # نشتغل على ROI لو فيه mask
     if mask is not None:
         roi = cv2.bitwise_and(gray, gray, mask=mask)
     else:
@@ -62,11 +61,9 @@ def extract_sift_features(gray, mask=None):
 
     keypoints, descriptors = sift.detectAndCompute(roi, None)
 
-    # لو مفيش features
     if descriptors is None or len(keypoints) == 0:
         return np.zeros(4)
 
-    # ===== نحول ل vector ثابت =====
     num_kp = len(keypoints)
     mean_des = np.mean(descriptors)
     std_des = np.std(descriptors)

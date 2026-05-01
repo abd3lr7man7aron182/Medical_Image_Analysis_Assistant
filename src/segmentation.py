@@ -4,7 +4,6 @@ import numpy as np
 
 def threshold_segmentation(gray_image):
 
-    # تحسين الإضاءة 🔥
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     enhanced = clahe.apply(gray_image)
 
@@ -16,7 +15,7 @@ def threshold_segmentation(gray_image):
         cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     )
 
-    # Adaptive 🔥
+    # Adaptive 
     thresh2 = cv2.adaptiveThreshold(
         blurred, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -24,10 +23,10 @@ def threshold_segmentation(gray_image):
         11, 2
     )
 
-    # دمج الاتنين
+    
     thresh = cv2.bitwise_or(thresh1, thresh2)
 
-    # تنظيف
+    
     kernel = np.ones((3, 3), np.uint8)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
@@ -66,10 +65,10 @@ def extract_lung_region(binary_mask):
 
         img_area = h * w
 
-        # فلترة بالمساحة 🔥
+        
         valid = [cnt for cnt in contours if cv2.contourArea(cnt) > 0.05 * img_area]
 
-        # fallback 🔥🔥
+        # fallback
         if len(valid) == 0:
             return binary_mask
 
@@ -78,7 +77,7 @@ def extract_lung_region(binary_mask):
         for cnt in sorted_contours[:2]:
             cv2.drawContours(lung_mask, [cnt], -1, 255, -1)
 
-    # fallback لو فاضي جدًا
+    
     if np.sum(lung_mask) < 5000:
         return binary_mask
 

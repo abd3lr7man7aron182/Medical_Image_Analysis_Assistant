@@ -2,24 +2,14 @@ import cv2
 
 
 def detect_sift_features(gray_image):
-    """
-    Detect SIFT keypoints and descriptors.
-
-    Args:
-        gray_image: Grayscale image
-
-    Returns:
-        keypoints, descriptors
-    """
+   
     sift = cv2.SIFT_create()
     keypoints, descriptors = sift.detectAndCompute(gray_image, None)
     return keypoints, descriptors
 
 
 def draw_keypoints(image, keypoints):
-    """
-    Draw SIFT keypoints on the image.
-    """
+  
     return cv2.drawKeypoints(
         image,
         keypoints,
@@ -29,9 +19,7 @@ def draw_keypoints(image, keypoints):
 
 
 def match_features(des1, des2):
-    """
-    Match features using BFMatcher + Lowe's ratio test.
-    """
+  
     bf = cv2.BFMatcher(cv2.NORM_L2)
 
     matches = bf.knnMatch(des1, des2, k=2)
@@ -45,9 +33,7 @@ def match_features(des1, des2):
 
 
 def draw_matches(img1, kp1, img2, kp2, matches):
-    """
-    Draw matches between two images.
-    """
+    
     return cv2.drawMatchesKnn(
         img1, kp1,
         img2, kp2,
