@@ -239,7 +239,7 @@ pip install -r requirements.txt
 ---
 
 ### 3. Prepare Dataset
-
+Dataset Link : https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia
 Place dataset in:
 
 ```
